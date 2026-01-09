@@ -4,9 +4,17 @@ const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
   images: {
-    domains: ['firebasestorage.googleapis.com', 'lh3.googleusercontent.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'firebasestorage.googleapis.com',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+      }
+    ],
   },
-  // Permite que o Next.js ignore erros de linting durante o build para agilizar o deploy
   eslint: {
     ignoreDuringBuilds: true,
   },

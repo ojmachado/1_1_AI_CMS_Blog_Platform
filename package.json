@@ -3,7 +3,14 @@
   "name": "ai-ecosystem-platform",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
   "dependencies": {
+    "next": "14.1.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-router-dom": "^6.22.3",
@@ -16,6 +23,17 @@
     "@hello-pangea/dnd": "^16.6.0",
     "reactflow": "^11.10.1",
     "react-email-editor": "^1.7.11",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "firebase": "^10.8.0",
+    "firebase-admin": "^11.11.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.20",
+    "@types/react": "^18.2.57",
+    "@types/react-dom": "^18.2.19",
+    "typescript": "^5.3.3",
+    "autoprefixer": "^10.4.17",
+    "postcss": "^8.4.35",
+    "tailwind-merge": "^2.2.1"
   }
 }
