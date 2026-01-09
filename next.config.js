@@ -3,6 +3,15 @@
 const nextConfig = {
   reactStrictMode: true,
   swcMinify: true,
+  transpilePackages: [
+    'undici',
+    'firebase',
+    '@firebase/app',
+    '@firebase/auth',
+    '@firebase/firestore',
+    '@firebase/storage',
+    '@firebase/util'
+  ],
   images: {
     remotePatterns: [
       {
