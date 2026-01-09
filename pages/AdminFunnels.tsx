@@ -1,6 +1,6 @@
-
 import React, { useEffect, useState, useCallback } from 'react';
-import ReactFlow, { 
+import dynamic from 'next/dynamic';
+import { 
   Controls, 
   Background, 
   addEdge, 
@@ -15,7 +15,7 @@ import type { Node, Edge, Connection } from 'reactflow';
 import { funnelService } from '../services/funnelService';
 import { Funnel, FunnelNode, FunnelNodeType } from '../types';
 import EmailNode from '../components/admin/funnels/nodes/EmailNode';
-import DelayNode from '../components/admin/funnels/nodes/DelayNode';
+import DelayNode from '../components/admin/funnels/nodes/DelayNode'; 
 import WhatsAppNode from '../components/admin/funnels/nodes/WhatsAppNode';
 import ConditionNode from '../components/admin/funnels/nodes/ConditionNode';
 import ButtonEdge from '../components/admin/funnels/edges/ButtonEdge';
@@ -23,8 +23,11 @@ import { EmailPickerModal } from '../components/admin/funnels/EmailPickerModal';
 import { MessagePickerModal } from '../components/admin/funnels/MessagePickerModal';
 import { DelayPickerModal } from '../components/admin/funnels/DelayPickerModal';
 import { ConditionPickerModal } from '../components/admin/funnels/ConditionPickerModal';
-import { Plus, Save, ArrowLeft, MessageCircle, PlayCircle, Zap, Loader2, Edit3, Trash2, CheckCircle, Clock, Split, Mail } from 'lucide-react';
+import { Plus, Save, ArrowLeft, MessageCircle, Zap, Loader2, Trash2, CheckCircle, Clock, Split, Mail } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
+
+// Use dynamic import for the ReactFlow component to avoid SSR issues
+const ReactFlow = dynamic(() => import('reactflow'), { ssr: false });
 
 const nodeTypes = {
   EMAIL: EmailNode,
@@ -37,7 +40,6 @@ const edgeTypes = {
   buttonEdge: ButtonEdge,
 };
 
-// Sub-componente para isolar a lógica do ReactFlow dentro do Provider
 const FunnelCanvas = ({ funnel, onCancel, onSaveSuccess }: { funnel: Funnel, onCancel: () => void, onSaveSuccess: () => void }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);

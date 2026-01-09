@@ -1,10 +1,9 @@
-
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import SimpleMDE from "react-simplemde-editor";
+import dynamic from 'next/dynamic';
 import { aiService } from '../services/aiService';
 import { dbService } from '../services/dbService';
-import { PostStatus, BlogPost, SeoConfig } from '../types';
+import { PostStatus, BlogPost } from '../types';
 import { 
   Sparkles, 
   RotateCw, 
@@ -13,19 +12,16 @@ import {
   CheckCircle, 
   Loader2, 
   ArrowLeft, 
-  Search, 
-  Link as LinkIcon,
-  Hash,
   AlertTriangle,
   Info,
-  ChevronRight,
-  ExternalLink,
-  Settings2,
-  AlignLeft,
-  PenTool,
-  Clock,
-  Key
+  PenTool
 } from 'lucide-react';
+
+// Dynamic import for SimpleMDE to prevent SSR errors
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), { 
+  ssr: false,
+  loading: () => <div className="h-[450px] w-full bg-slate-50 animate-pulse rounded-xl border border-slate-200 flex items-center justify-center text-slate-400">Carregando Editor...</div>
+});
 
 export const AdminEditor: React.FC = () => {
   const navigate = useNavigate();
@@ -37,7 +33,6 @@ export const AdminEditor: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [generatedData, setGeneratedData] = useState<Partial<BlogPost> | null>(null);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
-  const [quotaError, setQuotaError] = useState(false);
 
   const mdeOptions = useMemo(() => ({
     spellChecker: false,
@@ -59,7 +54,6 @@ export const AdminEditor: React.FC = () => {
     if (!topic.trim()) return;
     setIsGenerating(true);
     setError(null);
-    setQuotaError(false);
     try {
       const result = await aiService.generateFullPost(topic);
       const cleanedContent = result.content.replace(/\\n/g, '\n').trim();
@@ -79,7 +73,6 @@ export const AdminEditor: React.FC = () => {
                 message: "A IA gerou o texto, mas não conseguiu salvar a imagem. Vá no Console do Firebase > Storage > Rules e mude 'allow read, write: if false;' para 'if true;'" 
             });
         } else if (err.message?.includes("429")) {
-            setQuotaError(true);
             setError({ title: "Limite atingido", message: "Aguarde 60 segundos ou use uma chave paga." });
         } else {
             setError({ title: "Erro na geração", message: err.message || "Erro desconhecido." }); 
@@ -95,14 +88,7 @@ export const AdminEditor: React.FC = () => {
       const url = await aiService.generateSmartImage(generatedData.title);
       setGeneratedData(prev => prev ? { ...prev, coverImage: url } : null);
     } catch (err: any) {
-      if (err.message?.includes("PERMISSAO_NEGADA_STORAGE")) {
-          setError({ 
-              title: "Erro de Permissão no Storage", 
-              message: "Libere o acesso em: Console Firebase > Storage > Rules > 'allow read, write: if true;'" 
-          });
-      } else {
-          setError({ title: "Falha ao gerar imagem", message: err.message });
-      }
+      setError({ title: "Falha ao gerar imagem", message: err.message });
     } finally { setIsGeneratingImage(false); }
   };
 

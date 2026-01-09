@@ -1,31 +1,34 @@
-
-import React, { useRef, useState, useEffect } from 'react';
-import EmailEditor, { EditorRef } from 'react-email-editor';
-import { dbService } from '../services/dbService';
+import React, { useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useNavigate } from 'react-router-dom';
-import { Save, ArrowLeft, Send, Layout, Loader2, CheckCircle2 } from 'lucide-react';
+import { Save, ArrowLeft, Layout, Loader2, CheckCircle2 } from 'lucide-react';
+
+// Dynamic import for EmailEditor to prevent SSR errors
+const EmailEditor = dynamic(() => import('react-email-editor'), { 
+  ssr: false,
+  loading: () => <div className="h-[calc(100vh-84px)] w-full bg-slate-100 animate-pulse flex items-center justify-center text-slate-400">Carregando Editor Visual...</div>
+});
 
 export const AdminEmailEditor: React.FC = () => {
-  const emailEditorRef = useRef<EditorRef>(null);
+  const emailEditorRef = useRef<any>(null);
   const navigate = useNavigate();
   const [templateName, setTemplateName] = useState('Novo Modelo de Email');
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
   const onReady = () => {
-    // Editor is ready
     console.log('Email Editor Ready');
   };
 
   const saveDesign = () => {
+    if (!emailEditorRef.current?.editor) return;
     setSaving(true);
     setMessage(null);
     
-    emailEditorRef.current?.editor?.saveDesign((design: any) => {
-      emailEditorRef.current?.editor?.exportHtml(async (data: any) => {
+    emailEditorRef.current.editor.saveDesign((design: any) => {
+      emailEditorRef.current.editor.exportHtml(async (data: any) => {
         const { html } = data;
         try {
-          // Salva no Firestore via localStorage para fins de demo
           const templates = JSON.parse(localStorage.getItem('email_templates') || '[]');
           templates.push({
             id: crypto.randomUUID(),
@@ -49,7 +52,6 @@ export const AdminEmailEditor: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 -m-4 sm:-m-8 overflow-hidden">
-      {/* Custom Header for the Full-Screen Editor */}
       <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center z-50 shadow-sm shrink-0">
         <div className="flex items-center gap-6">
           <button 
@@ -93,14 +95,6 @@ export const AdminEmailEditor: React.FC = () => {
             ref={emailEditorRef} 
             onReady={onReady} 
             minHeight="calc(100vh - 84px)"
-            appearance={{
-                theme: 'light',
-                panels: {
-                    tools: {
-                        dock: 'left'
-                    }
-                }
-            }}
         />
       </div>
     </div>
