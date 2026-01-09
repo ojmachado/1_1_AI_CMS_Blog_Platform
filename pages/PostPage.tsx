@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -45,9 +44,8 @@ export const PostPage: React.FC = () => {
     if (typeof node === 'number') return String(node);
     if (Array.isArray(node)) return node.map(flattenText).join('');
     if (React.isValidElement(node)) return flattenText((node.props as any).children);
-    if (node && typeof node === 'object') {
-       // Handle case where node might be a specialized object from react-markdown
-       if (node.props?.children) return flattenText(node.props.children);
+    if (node && typeof node === 'object' && node.props?.children) {
+       return flattenText(node.props.children);
     }
     return '';
   };
@@ -138,7 +136,7 @@ export const PostPage: React.FC = () => {
     h2: ({ children }: any) => {
       const text = flattenText(children);
       const id = slugify(text);
-      return <h2 id={id} className="scroll-mt-28 text-3xl font-black text-slate-900 mt-16 mb-6 tracking-tight">{children}</h2>;
+      return <h2 id={id} className="scroll-mt-28 text-3xl font-black text-slate-900 mt-16 mb-6 tracking-tight leading-tight">{children}</h2>;
     },
     h3: ({ children }: any) => {
       const text = flattenText(children);
@@ -173,12 +171,7 @@ export const PostPage: React.FC = () => {
                     {post.tags.map(tag => <span key={tag} className="px-3 py-1 bg-slate-100 text-slate-600 text-[9px] font-black uppercase tracking-widest rounded-full border border-slate-200">#{tag}</span>)}
                 </div>
             </header>
-            {post.coverImage && (
-              <div className="relative mb-20 group">
-                <div className="absolute -inset-2 bg-indigo-500/5 rounded-[2.5rem] blur-xl"></div>
-                <img src={post.coverImage} className="relative w-full rounded-[2rem] shadow-2xl aspect-video object-cover" alt={post.title} />
-              </div>
-            )}
+            {post.coverImage && <div className="relative mb-20 group"><div className="absolute -inset-2 bg-indigo-500/5 rounded-[2.5rem] blur-xl"></div><img src={post.coverImage} className="relative w-full rounded-[2rem] shadow-2xl aspect-video object-cover" alt={post.title} /></div>}
             <div className="max-w-[75ch] mx-auto lg:mx-0">
                 <div className="prose prose-slate prose-lg md:prose-xl max-w-none prose-headings:font-black prose-headings:tracking-tight prose-a:text-indigo-600 prose-img:rounded-3xl prose-strong:text-slate-900">
                     <ReactMarkdown remarkPlugins={[remarkGfm]} components={mdComponents}>{processedContent}</ReactMarkdown>
@@ -190,33 +183,17 @@ export const PostPage: React.FC = () => {
               <div className="sticky top-28 space-y-8">
                   <div className="bg-white rounded-[2rem] p-8 text-slate-900 shadow-xl border border-slate-100 relative overflow-hidden">
                       <h5 className="font-black text-[10px] uppercase tracking-widest mb-6 text-indigo-500 flex items-center gap-2"><BookOpen size={12} /> Leitura Atual</h5>
-                      <div className="flex items-baseline gap-2 mb-6">
-                        <span className="text-5xl font-black leading-none">{Math.round(scrollProgress)}</span>
-                        <span className="text-lg font-bold opacity-20">%</span>
-                      </div>
-                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-8">
-                        <div className="h-full bg-indigo-600 transition-all duration-300" style={{ width: `${scrollProgress}%` }}></div>
-                      </div>
-                      <button className="w-full bg-slate-900 hover:bg-slate-800 text-white transition-all py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95">
-                        <Share2 size={14} /> Salvar Link
-                      </button>
+                      <div className="flex items-baseline gap-2 mb-6"><span className="text-5xl font-black leading-none">{Math.round(scrollProgress)}</span><span className="text-lg font-bold opacity-20">%</span></div>
+                      <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden mb-8"><div className="h-full bg-indigo-600 transition-all duration-300" style={{ width: `${scrollProgress}%` }}></div></div>
+                      <button className="w-full bg-slate-900 hover:bg-slate-800 text-white transition-all py-4 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg active:scale-95"><Share2 size={14} /> Salvar Link</button>
                   </div>
                   {toc.length > 0 && (
                     <div className="bg-white rounded-[2rem] border border-slate-100 p-8 shadow-sm">
                         <h4 className="font-black text-slate-900 mb-6 flex items-center gap-3 uppercase tracking-widest text-[10px] text-indigo-500"><List size={14} /> Tópicos</h4>
                         <nav className="space-y-1">
                             {toc.map((item) => (
-                                <a 
-                                  key={item.id} 
-                                  href={`#${item.id}`} 
-                                  onClick={(e) => { 
-                                    e.preventDefault(); 
-                                    document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' }); 
-                                  }} 
-                                  className={`group flex items-start gap-3 py-2.5 text-[11px] transition-all duration-300 rounded-xl px-3 -mx-3 ${item.id === activeId ? 'text-indigo-600 font-black bg-indigo-50/50' : 'text-slate-400 font-bold hover:text-slate-600 hover:bg-slate-50'} ${item.level === 3 ? 'pl-8' : ''}`}
-                                >
-                                    <ChevronRight size={12} className={`mt-0.5 shrink-0 transition-all ${item.id === activeId ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} />
-                                    <span className="leading-snug">{item.text}</span>
+                                <a key={item.id} href={`#${item.id}`} onClick={(e) => { e.preventDefault(); document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' }); }} className={`group flex items-start gap-3 py-2.5 text-[11px] transition-all duration-300 rounded-xl px-3 -mx-3 ${item.id === activeId ? 'text-indigo-600 font-black bg-indigo-50/50' : 'text-slate-400 font-bold hover:text-slate-600 hover:bg-slate-50'} ${item.level === 3 ? 'pl-8' : ''}`}>
+                                    <ChevronRight size={12} className={`mt-0.5 shrink-0 transition-all ${item.id === activeId ? 'opacity-100 scale-100' : 'opacity-0 scale-50'}`} /><span className="leading-snug">{item.text}</span>
                                 </a>
                             ))}
                         </nav>
