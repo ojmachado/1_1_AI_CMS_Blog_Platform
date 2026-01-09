@@ -1,8 +1,8 @@
 
-import { initializeApp, getApps, getApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
-import { getFirestore } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
-import { getStorage } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 const getSavedConfig = () => {
     try {
@@ -19,9 +19,11 @@ const getSavedConfig = () => {
     return null;
 };
 
+// Fallback para variáveis de ambiente se disponíveis
 const config = getSavedConfig() || {
-    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "",
-    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || ""
+    apiKey: "",
+    projectId: "",
+    storageBucket: ""
 };
 
 // Verifica se a configuração é minimamente utilizável
@@ -30,7 +32,7 @@ export const getFirebaseConfigStatus = () => {
     return { isValid: hasMinConfig, config };
 };
 
-// Inicialização segura com try-catch
+// Inicialização segura
 let firebaseApp: any = null;
 const { isValid } = getFirebaseConfigStatus();
 
@@ -42,7 +44,7 @@ if (isValid) {
     }
 }
 
-// Exports seguros
+// Exports seguros - garantem que o app não quebre se o Firebase não estiver configurado
 export const auth = firebaseApp ? getAuth(firebaseApp) : null as any;
 export const db = firebaseApp ? getFirestore(firebaseApp) : null as any;
 export const storage = firebaseApp ? getStorage(firebaseApp) : null as any;

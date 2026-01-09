@@ -4,24 +4,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI CMS Blog - Dev Mode</title>
+    <title>AI CMS Blog - Pro Mode</title>
     <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
     <link href="https://cdn.jsdelivr.net/npm/reactflow@11.10.1/dist/style.min.css" rel="stylesheet">
     <script src="https://editor.unlayer.com/embed.js"></script>
     <style>
       body { font-family: 'Inter', sans-serif; margin: 0; padding: 0; }
       #root { min-height: 100vh; }
+      ::-webkit-scrollbar { width: 8px; }
+      ::-webkit-scrollbar-track { background: #f8fafc; }
+      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; border: 2px solid #f8fafc; }
+      ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+      
+      /* Fix for EasyMDE in Tailwind */
+      .editor-toolbar button { color: #475569 !important; }
+      .CodeMirror { border-radius: 0 0 1rem 1rem !important; border-color: #e2e8f0 !important; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important; }
+      .editor-toolbar { border-radius: 1rem 1rem 0 0 !important; border-color: #e2e8f0 !important; background: #f8fafc !important; }
     </style>
     <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@18.2.0",
-    "react/": "https://esm.sh/react@18.2.0/",
     "react-dom": "https://esm.sh/react-dom@18.2.0",
     "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "react-dom/server": "https://esm.sh/react-dom@18.2.0/server",
     "react-router-dom": "https://esm.sh/react-router-dom@6.22.3?deps=react@18.2.0,react-dom@18.2.0",
     "@google/genai": "https://esm.sh/@google/genai@0.10.0",
     "lucide-react": "https://esm.sh/lucide-react@0.344.0?deps=react@18.2.0",
@@ -34,18 +41,19 @@
     "react-simplemde-editor": "https://esm.sh/react-simplemde-editor@5.2.0?deps=react@18.2.0,react-dom@18.2.0",
     "react-email-editor": "https://esm.sh/react-email-editor@1.7.11?deps=react@18.2.0,react-dom@18.2.0",
     "easymde": "https://esm.sh/easymde@2.18.0",
-    "crypto-js": "https://esm.sh/crypto-js@4.2.0",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js",
-    "firebase/firestore": "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js",
-    "firebase/storage": "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js",
+    "firebase/app": "https://esm.sh/firebase@10.8.0/app",
+    "firebase/auth": "https://esm.sh/firebase@10.8.0/auth",
+    "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore",
+    "firebase/storage": "https://esm.sh/firebase@10.8.0/storage",
+    "react-dom/server": "https://esm.sh/react-dom@18.2.0/server",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
     "firebase/": "https://esm.sh/firebase@^12.7.0/",
     "firebase-admin": "https://esm.sh/firebase-admin@^13.6.0",
     "next/": "https://esm.sh/next@^16.1.1/",
-    "next": "https://esm.sh/next@^16.1.1",
-    "reactflow/": "https://esm.sh/reactflow@^11.11.4/",
     "crypto": "https://esm.sh/crypto@^1.0.1",
+    "reactflow/": "https://esm.sh/reactflow@^11.11.4/",
+    "next": "https://esm.sh/next@^16.1.1",
     "easymde/": "https://esm.sh/easymde@^2.20.0/"
   }
 }

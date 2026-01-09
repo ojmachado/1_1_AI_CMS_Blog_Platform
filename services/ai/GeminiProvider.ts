@@ -122,7 +122,7 @@ export class GeminiImageProvider implements ImageGeneratorProvider {
         const fileName = `covers/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
         
         if (!storage) {
-            throw new Error("STORAGE_NAO_CONFIGURADO: O Firebase Storage não foi inicializado. Verifique se você colou o 'storageBucket' nas configurações.");
+            throw new Error("STORAGE_NAO_CONFIGURADO");
         }
 
         const storageRef = ref(storage, fileName);
@@ -132,7 +132,7 @@ export class GeminiImageProvider implements ImageGeneratorProvider {
             return await getDownloadURL(storageRef);
         } catch (storageErr: any) {
             if (storageErr.code === 'storage/unauthorized') {
-                throw new Error("PERMISSAO_NEGADA_STORAGE: O Firebase negou a gravação da imagem. Você precisa ir no Console do Firebase > Storage > Rules e alterar para: allow read, write: if true;");
+                throw new Error("PERMISSAO_NEGADA_STORAGE");
             }
             throw storageErr;
         }

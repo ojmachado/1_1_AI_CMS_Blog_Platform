@@ -4,9 +4,7 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import SimpleMDE from "react-simplemde-editor";
 import { aiService } from '../services/aiService';
 import { dbService } from '../services/dbService';
-import { emailService } from '../services/emailService';
 import { PostStatus, BlogPost, SeoConfig } from '../types';
-import { TrendingTopic } from '../services/ai/interfaces';
 import { 
   Sparkles, 
   RotateCw, 
@@ -40,7 +38,6 @@ export const AdminEditor: React.FC = () => {
   const [generatedData, setGeneratedData] = useState<Partial<BlogPost> | null>(null);
   const [error, setError] = useState<{title: string, message: string} | null>(null);
   const [quotaError, setQuotaError] = useState(false);
-  const [hasApiKey, setHasApiKey] = useState<boolean>(true);
 
   const mdeOptions = useMemo(() => ({
     spellChecker: false,
@@ -124,7 +121,6 @@ export const AdminEditor: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20 px-4">
-      {/* Alerta de Erro Crítico */}
       {error && (
           <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-[2rem] flex items-start gap-4 animate-in slide-in-from-top-4 duration-300 shadow-sm">
               <div className="p-2 bg-red-100 rounded-xl"><AlertTriangle size={24} /></div>
@@ -136,7 +132,6 @@ export const AdminEditor: React.FC = () => {
           </div>
       )}
 
-      {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
             <button onClick={() => navigate('/admin')} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><ArrowLeft size={20} /></button>
@@ -227,7 +222,7 @@ export const AdminEditor: React.FC = () => {
                             value={generatedData.coverImage || ''} 
                             onChange={e => setGeneratedData({...generatedData, coverImage: e.target.value})} 
                             placeholder="https://..." 
-                            className="w-full text-[10px] p-3 rounded-xl border border-slate-100 bg-slate-50 font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+                            className="w-full text-[10px] p-3 rounded-xl border border-slate-100 bg-slate-50 font-mono focus:ring-2 focus:ring-indigo-50 outline-none"
                           />
                       </div>
                   </div>
