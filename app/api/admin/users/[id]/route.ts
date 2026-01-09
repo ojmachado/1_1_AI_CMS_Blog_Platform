@@ -1,12 +1,22 @@
-
 import { NextRequest, NextResponse } from 'next/server';
 import { adminAuth } from '../../../../../lib/firebaseAdmin';
+
+// Garante que o Next.js trate esta rota como dinâmica e não tente otimizá-la no build
+export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Verificação de segurança para o ambiente
+    if (!adminAuth) {
+      return NextResponse.json(
+        { error: 'Firebase Admin not initialized. Please configure environment variables.' },
+        { status: 500 }
+      );
+    }
+
     const userId = params.id;
     const superAdminEmail = process.env.NEXT_PUBLIC_SUPER_ADMIN_EMAIL?.toLowerCase();
 
