@@ -63,34 +63,7 @@ export class GeminiTextProvider implements TextGeneratorProvider {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Atue como um Especialista Sênior em SEO (Search Engine Optimization). Sua tarefa é analisar o título e o conteúdo fornecidos e gerar metadados otimizados para maximizar o CTR (Click-Through Rate) e o ranqueamento orgânico.
-
-        Título: ${title}
-        Conteúdo (snippet): ${content.substring(0, 1500)}
-
-        **DIRETRIZES DE OTIMIZAÇÃO:**
-        1. **metaTitle**: 
-           - Deve ser magnético e urgente.
-           - Inclua a palavra-chave principal o mais à esquerda possível.
-           - Use separadores como "|" ou "-".
-           - Exemplo de estrutura: "Palavra-Chave Principal: Benefício ou Curiosidade | Nome do Site"
-           - Limite estrito: 60 caracteres.
-
-        2. **metaDescription**:
-           - Use técnicas de copywriting (AIDA).
-           - Deve conter a palavra-chave principal e variações semânticas.
-           - Inclua um Call-to-Action (CTA) claro no final (ex: "Confira!", "Leia mais.", "Descubra agora.").
-           - Limite estrito: 155 caracteres.
-
-        3. **focusKeywords**:
-           - Identifique 5-8 palavras-chave estratégicas.
-           - Inclua cauda longa (long-tail keywords).
-           - Se o tema for sobre "Inteligência Artificial na Educação", inclua termos como "futuro da educação", "IA nas escolas", "personalização do ensino", "edtech".
-
-        4. **slug**:
-           - URL amigável, curta e direta.
-           - Use apenas letras minúsculas, números e hífens.
-           - Remova stop words (de, para, com, o, a).`,
+        contents: `Analise o título e conteúdo e gere SEO: ${title}`,
         config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -112,7 +85,7 @@ export class GeminiTextProvider implements TextGeneratorProvider {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Gere uma Landing Page moderna usando Tailwind CSS e HTML para o produto: ${data.subject}. Contexto: ${data.salesContext}.`,
+      contents: `Gere uma Landing Page moderna usando Tailwind CSS e HTML para o produto: ${data.subject}.`,
     });
     return response.text!;
   }
@@ -121,29 +94,15 @@ export class GeminiTextProvider implements TextGeneratorProvider {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Identifique 5 tendências e notícias atuais e urgentes no nicho: "${niche}". Foque em tópicos que gerem curiosidade ou resolvam problemas reais. Retorne um JSON: [{"title": "Título Impactante", "relevance": "Nível de Relevância"}]`,
-      config: {
-        tools: [{ googleSearch: {} }],
-      }
+      contents: `5 tendências no nicho: "${niche}". JSON: [{"title": "...", "relevance": "..."}]`,
+      config: { tools: [{ googleSearch: {} }] }
     });
-
-    if (!response.text) throw new Error("Sem resposta");
-    
     let topicsData = [];
     try {
         const jsonMatch = response.text.match(/\[.*\]/s);
         topicsData = JSON.parse(jsonMatch ? jsonMatch[0] : response.text);
     } catch (e) { topicsData = []; }
-    
-    const sources: { title: string; uri: string }[] = [];
-    response.candidates?.[0]?.groundingMetadata?.groundingChunks?.forEach((chunk: any) => {
-      if (chunk.web?.uri) sources.push({ title: chunk.web.title || 'Referência', uri: chunk.web.uri });
-    });
-
-    return topicsData.map((topic: any) => ({
-      ...topic,
-      sources: sources.slice(0, 3)
-    }));
+    return topicsData;
   }
 }
 
@@ -153,22 +112,34 @@ export class GeminiImageProvider implements ImageGeneratorProvider {
     try {
       const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash-image',
-        contents: { parts: [{ text: `${prompt}. Award winning photography, 8k, highly detailed.` }] },
+        contents: { parts: [{ text: `${prompt}. Cinematic, professional photography.` }] },
         config: { imageConfig: { aspectRatio: "16:9" } },
       });
+      
       const imgPart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
       if (imgPart?.inlineData) {
         const base64 = imgPart.inlineData.data;
         const fileName = `covers/${Date.now()}-${Math.random().toString(36).substring(7)}.png`;
+        
+        if (!storage) {
+            throw new Error("STORAGE_NAO_CONFIGURADO: O Firebase Storage não foi inicializado. Verifique se você colou o 'storageBucket' nas configurações.");
+        }
+
         const storageRef = ref(storage, fileName);
-        await uploadString(storageRef, base64, 'base64', { contentType: 'image/png' });
-        return await getDownloadURL(storageRef);
+        
+        try {
+            await uploadString(storageRef, base64, 'base64', { contentType: 'image/png' });
+            return await getDownloadURL(storageRef);
+        } catch (storageErr: any) {
+            if (storageErr.code === 'storage/unauthorized') {
+                throw new Error("PERMISSAO_NEGADA_STORAGE: O Firebase negou a gravação da imagem. Você precisa ir no Console do Firebase > Storage > Rules e alterar para: allow read, write: if true;");
+            }
+            throw storageErr;
+        }
       }
       throw new Error("Resposta da imagem sem dados binários.");
     } catch (error: any) {
-      if (error.message?.includes("429") || error.message?.includes("quota")) {
-        throw new Error("COTA_EXCEDIDA_IMAGEM");
-      }
+      if (error.message?.includes("429")) throw new Error("COTA_EXCEDIDA_IMAGEM");
       throw error;
     }
   }

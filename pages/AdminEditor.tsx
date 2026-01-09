@@ -20,27 +20,14 @@ import {
   Hash,
   AlertTriangle,
   Info,
-  ChevronDown,
-  ChevronUp,
-  Settings2,
-  PenTool,
-  AlignLeft,
-  TrendingUp,
-  ExternalLink,
   ChevronRight,
-  Key,
-  Clock
+  ExternalLink,
+  Settings2,
+  AlignLeft,
+  PenTool,
+  Clock,
+  Key
 } from 'lucide-react';
-
-declare global {
-  interface AIStudio {
-    hasSelectedApiKey: () => Promise<boolean>;
-    openSelectKey: () => Promise<void>;
-  }
-  interface Window {
-    aistudio?: AIStudio;
-  }
-}
 
 export const AdminEditor: React.FC = () => {
   const navigate = useNavigate();
@@ -49,14 +36,10 @@ export const AdminEditor: React.FC = () => {
   const [topic, setTopic] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
-  const [isDiscovering, setIsDiscovering] = useState(false);
-  const [trends, setTrends] = useState<TrendingTopic[]>([]);
-  const [isGeneratingSeo, setIsGeneratingSeo] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [generatedData, setGeneratedData] = useState<Partial<BlogPost> | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{title: string, message: string} | null>(null);
   const [quotaError, setQuotaError] = useState(false);
-  const [showSeoDetails, setShowSeoDetails] = useState(true);
   const [hasApiKey, setHasApiKey] = useState<boolean>(true);
 
   const mdeOptions = useMemo(() => ({
@@ -68,28 +51,12 @@ export const AdminEditor: React.FC = () => {
   }), [id]);
 
   useEffect(() => {
-    const checkKey = async () => {
-        if (window.aistudio) {
-            const hasKey = await window.aistudio.hasSelectedApiKey();
-            setHasApiKey(hasKey);
-        }
-    };
-    checkKey();
-    
     if (id) {
         dbService.getPostById(id).then(post => post && setGeneratedData(post));
     } else if (location.state?.initialTopic) {
-        // Se viemos do Dashboard com um tópico sugerido
         setTopic(location.state.initialTopic);
     }
   }, [id, location.state]);
-
-  const handleSelectKey = async () => {
-    if (window.aistudio) {
-      await window.aistudio.openSelectKey();
-      setHasApiKey(true);
-    }
-  };
 
   const handleGenerate = async () => {
     if (!topic.trim()) return;
@@ -98,12 +65,7 @@ export const AdminEditor: React.FC = () => {
     setQuotaError(false);
     try {
       const result = await aiService.generateFullPost(topic);
-      
-      // Limpeza preventiva no editor
-      const cleanedContent = result.content
-        .replace(/\\n/g, '\n')
-        .replace(new RegExp(`^#*\\s*${result.title}`, 'i'), '')
-        .trim();
+      const cleanedContent = result.content.replace(/\\n/g, '\n').trim();
 
       setGeneratedData({ 
         ...result, 
@@ -114,15 +76,16 @@ export const AdminEditor: React.FC = () => {
         seo: result.seo || { metaTitle: '', metaDescription: '', focusKeywords: [], slug: '' }
       });
     } catch (err: any) { 
-        if (err.message?.includes("Requested entity was not found.")) {
-            setHasApiKey(false);
-            setError("Erro de chave API. Por favor, selecione uma chave válida.");
-            if (window.aistudio) window.aistudio.openSelectKey().then(() => setHasApiKey(true));
-        } else if (err.message?.includes("429") || err.message?.includes("RESOURCE_EXHAUSTED") || err.message?.includes("LIMITE_EXCEDIDO")) {
+        if (err.message?.includes("PERMISSAO_NEGADA_STORAGE")) {
+            setError({ 
+                title: "Erro de Permissão (Firebase Storage)", 
+                message: "A IA gerou o texto, mas não conseguiu salvar a imagem. Vá no Console do Firebase > Storage > Rules e mude 'allow read, write: if false;' para 'if true;'" 
+            });
+        } else if (err.message?.includes("429")) {
             setQuotaError(true);
-            setError("Limite de cota atingido. Aguarde 60 segundos ou use uma chave paga.");
+            setError({ title: "Limite atingido", message: "Aguarde 60 segundos ou use uma chave paga." });
         } else {
-            setError("Erro na geração de conteúdo."); 
+            setError({ title: "Erro na geração", message: err.message || "Erro desconhecido." }); 
         }
     } finally { setIsGenerating(false); }
   };
@@ -135,56 +98,15 @@ export const AdminEditor: React.FC = () => {
       const url = await aiService.generateSmartImage(generatedData.title);
       setGeneratedData(prev => prev ? { ...prev, coverImage: url } : null);
     } catch (err: any) {
-      if (err.message?.includes("Requested entity was not found.")) {
-          setHasApiKey(false);
-          setError("Erro de chave API. Selecione uma chave válida para continuar.");
-          if (window.aistudio) window.aistudio.openSelectKey().then(() => setHasApiKey(true));
+      if (err.message?.includes("PERMISSAO_NEGADA_STORAGE")) {
+          setError({ 
+              title: "Erro de Permissão no Storage", 
+              message: "Libere o acesso em: Console Firebase > Storage > Rules > 'allow read, write: if true;'" 
+          });
       } else {
-          setError("Falha ao gerar imagem.");
+          setError({ title: "Falha ao gerar imagem", message: err.message });
       }
     } finally { setIsGeneratingImage(false); }
-  };
-
-  const handleDiscoverTrends = async () => {
-      setIsDiscovering(true);
-      setError(null);
-      try {
-          const results = await aiService.getTrendingTopics(topic || "Tecnologia e IA");
-          setTrends(results);
-      } catch (err: any) {
-          if (err.message?.includes("Requested entity was not found.")) {
-              setHasApiKey(false);
-              setError("Erro de chave API ao pesquisar tendências.");
-              if (window.aistudio) window.aistudio.openSelectKey().then(() => setHasApiKey(true));
-          } else {
-              setError("Falha ao pesquisar tendências.");
-          }
-      } finally { setIsDiscovering(false); }
-  };
-
-  const handleSelectTrend = (trendTitle: string) => {
-      setTopic(trendTitle);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  const handleStartManual = () => {
-    setGeneratedData({
-      title: '', content: '', summary: '', status: PostStatus.DRAFT, author: 'Admin', tags: [],
-      seo: { metaTitle: '', metaDescription: '', focusKeywords: [], slug: '' }
-    });
-  };
-
-  const handleMagicSeo = async () => {
-      if (!generatedData?.title || !generatedData?.content) return;
-      setIsGeneratingSeo(true);
-      setError(null);
-      try {
-          const seo = await aiService.generateSeoMetadata(generatedData.title, generatedData.content);
-          setGeneratedData(prev => prev ? { ...prev, seo } : null);
-          setShowSeoDetails(true);
-      } catch (err: any) {
-          setError("Erro ao otimizar SEO.");
-      } finally { setIsGeneratingSeo(false); }
   };
 
   const handleSave = async (status: PostStatus) => {
@@ -194,58 +116,30 @@ export const AdminEditor: React.FC = () => {
       const finalSlug = generatedData.seo?.slug || generatedData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
       const payload = { ...generatedData, slug: finalSlug, status, updatedAt: new Date().toISOString() } as BlogPost;
       if (id) await dbService.updatePost(id, payload);
-      else {
-          const newPost = await dbService.createPost(payload);
-          emailService.sendAdminAlert(newPost.title, newPost.slug, newPost.status).catch(() => {});
-      }
+      else await dbService.createPost(payload);
       navigate('/admin');
-    } catch (err) { setError("Falha ao salvar."); } 
+    } catch (err) { setError({ title: "Falha ao salvar", message: "Erro no banco de dados." }); } 
     finally { setIsSaving(false); }
-  };
-
-  const updateSeo = (field: keyof SeoConfig, value: any) => {
-      if (!generatedData) return;
-      setGeneratedData({
-          ...generatedData,
-          seo: { ...(generatedData.seo || { metaTitle: '', metaDescription: '', focusKeywords: [], slug: '' }), [field]: value }
-      });
-  };
-
-  const onContentChange = useCallback((value: string) => {
-    setGeneratedData(prev => prev ? { ...prev, content: value } : null);
-  }, []);
-
-  const getQualityColor = (length: number, idealMin: number, idealMax: number, hardMax: number) => {
-      if (length === 0) return 'bg-slate-100 text-slate-400 border-slate-200';
-      if (length > hardMax) return 'bg-red-50 text-red-600 border-red-200 animate-pulse'; // Over limit
-      if (length >= idealMin && length <= idealMax) return 'bg-green-50 text-green-600 border-green-200'; // Perfect
-      return 'bg-amber-50 text-amber-600 border-amber-200'; // Okay but not ideal
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20 px-4">
-      {/* Banner de Cota */}
-      {quotaError && (
-        <div className="bg-indigo-950 text-white p-6 rounded-[2rem] shadow-2xl border border-indigo-500/30 flex flex-col md:flex-row items-center justify-between gap-6 animate-in zoom-in-95 duration-300">
-            <div className="flex items-center gap-5">
-                <div className="p-4 bg-indigo-500/20 rounded-2xl">
-                    <Clock size={32} className="text-indigo-400 animate-pulse" />
-                </div>
-                <div>
-                    <h3 className="text-xl font-black tracking-tight">Limite de Requisições Atingido</h3>
-                    <p className="text-indigo-200 text-sm max-w-md">O modo Flash está sendo utilizado para manter a operação. Recomendamos o uso de uma chave API com faturamento para posts ilimitados.</p>
-                </div>
-            </div>
-            <button onClick={handleSelectKey} className="bg-white text-indigo-900 px-6 py-3 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-indigo-50 transition-all flex items-center gap-2"><Key size={16} /> Ativar Chave Paga</button>
-        </div>
+      {/* Alerta de Erro Crítico */}
+      {error && (
+          <div className="bg-red-50 border border-red-200 text-red-800 p-6 rounded-[2rem] flex items-start gap-4 animate-in slide-in-from-top-4 duration-300 shadow-sm">
+              <div className="p-2 bg-red-100 rounded-xl"><AlertTriangle size={24} /></div>
+              <div className="flex-1">
+                  <h4 className="font-black text-sm uppercase tracking-wider">{error.title}</h4>
+                  <p className="text-sm mt-1 leading-relaxed opacity-80">{error.message}</p>
+                  <button onClick={() => setError(null)} className="mt-3 text-[10px] font-black uppercase tracking-widest text-red-600 hover:underline">Fechar Alerta</button>
+              </div>
+          </div>
       )}
 
       {/* Header Bar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
-            <button onClick={() => navigate('/admin')} className="p-2 hover:bg-slate-100 rounded-full text-slate-400">
-                <ArrowLeft size={20} />
-            </button>
+            <button onClick={() => navigate('/admin')} className="p-2 hover:bg-slate-100 rounded-full text-slate-400"><ArrowLeft size={20} /></button>
             <div>
                 <h1 className="text-2xl font-black text-slate-900">{id ? 'Refinar Artigo' : 'Nova Criação'}</h1>
                 <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Workspace Editorial</p>
@@ -253,107 +147,37 @@ export const AdminEditor: React.FC = () => {
         </div>
         <div className="flex gap-3">
             <button onClick={() => handleSave(PostStatus.DRAFT)} disabled={isSaving || !generatedData} className="px-6 py-2.5 bg-white border border-slate-200 rounded-xl font-bold text-slate-700 disabled:opacity-50">Salvar Rascunho</button>
-            <button onClick={() => handleSave(PostStatus.PUBLISHED)} disabled={isSaving || !generatedData} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 disabled:opacity-50">
-                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />} Publicar Agora
+            <button onClick={() => handleSave(PostStatus.PUBLISHED)} disabled={isSaving || !generatedData} className="px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg disabled:opacity-50">
+                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle size={18} />} Publicar
             </button>
         </div>
       </div>
 
-      {error && !quotaError && (
-          <div className="bg-red-50 border border-red-100 text-red-700 p-4 rounded-2xl flex items-center gap-3">
-              <AlertTriangle size={20} className="shrink-0" />
-              <span className="text-sm font-semibold">{error}</span>
-          </div>
-      )}
-
       {!generatedData && (
-          <div className="space-y-12">
-            <div className="bg-white p-12 md:p-20 rounded-[3rem] shadow-xl border border-indigo-100 text-center space-y-8 max-w-4xl mx-auto">
-                <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 mb-2 shadow-inner">
-                    <Sparkles size={40} />
-                </div>
-                <div className="space-y-2">
-                    <h2 className="text-4xl font-black text-slate-900 tracking-tight">O que vamos publicar hoje?</h2>
-                    <p className="text-slate-500 text-lg">Gere conteúdo épico em segundos com Inteligência Artificial.</p>
-                </div>
-                <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
-                    <div className="flex-1 relative group">
-                        <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                            <Search size={20} className="text-slate-300" />
-                        </div>
-                        <input 
-                            type="text" 
-                            value={topic} 
-                            onChange={e => setTopic(e.target.value)} 
-                            onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-                            placeholder="Tópico ou Nicho..." 
-                            className="w-full p-5 pl-12 border border-slate-200 rounded-2xl text-lg focus:ring-4 focus:ring-indigo-50/50 outline-none transition-all shadow-sm" 
-                        />
-                    </div>
-                    <button 
-                        onClick={handleGenerate} 
-                        disabled={isGenerating || !topic.trim()} 
-                        className="bg-indigo-600 text-white px-8 rounded-2xl font-black text-xl hover:bg-indigo-700 transition-all shadow-xl shadow-indigo-200 disabled:opacity-50 flex items-center justify-center gap-2 group"
-                    >
-                        {isGenerating ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />}
-                        Gerar Artigo
-                    </button>
-                </div>
-                
-                <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
-                    <button onClick={handleDiscoverTrends} disabled={isDiscovering} className="flex items-center gap-2 text-indigo-600 font-black text-xs uppercase tracking-widest bg-indigo-50 px-5 py-2.5 rounded-xl border border-indigo-100 transition-all">
-                        {isDiscovering ? <Loader2 className="animate-spin" size={14} /> : <TrendingUp size={14} />}
-                        Pesquisar Tendências
-                    </button>
-                    <button onClick={handleStartManual} className="flex items-center gap-2 text-slate-400 font-black text-xs uppercase tracking-widest bg-slate-50 px-5 py-2.5 rounded-xl border border-slate-100 transition-all">
-                        <PenTool size={14} /> Escrita Manual
-                    </button>
-                </div>
+        <div className="bg-white p-12 md:p-20 rounded-[3rem] shadow-xl border border-indigo-100 text-center space-y-8 max-w-4xl mx-auto">
+            <div className="w-20 h-20 bg-indigo-50 rounded-3xl flex items-center justify-center mx-auto text-indigo-600 mb-2 shadow-inner"><Sparkles size={40} /></div>
+            <div className="space-y-2">
+                <h2 className="text-4xl font-black text-slate-900 tracking-tight">O que vamos publicar hoje?</h2>
+                <p className="text-slate-500 text-lg">Gere conteúdo épico em segundos com Inteligência Artificial.</p>
             </div>
-
-            {trends.length > 0 && (
-                <div className="animate-in fade-in slide-in-from-bottom-6 duration-500">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg"><TrendingUp size={20} /></div>
-                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tendências Encontradas</h3>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {trends.map((trend, idx) => (
-                            <div key={idx} className="bg-white rounded-[2rem] border border-slate-200 p-8 shadow-sm hover:border-indigo-400 transition-all group relative overflow-hidden flex flex-col">
-                                <div className="flex-1 space-y-4 mb-6">
-                                    <div className="inline-flex items-center px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-full">{trend.relevance}</div>
-                                    <h4 className="text-lg font-black text-slate-900 leading-tight">{trend.title}</h4>
-                                    
-                                    {trend.sources && trend.sources.length > 0 && (
-                                        <div className="mt-4 pt-4 border-t border-slate-100">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-1">
-                                                <ExternalLink size={10} /> Fontes de Grounding:
-                                            </p>
-                                            <ul className="space-y-1">
-                                                {trend.sources.map((source, sIdx) => (
-                                                    <li key={sIdx}>
-                                                        <a 
-                                                            href={source.uri} 
-                                                            target="_blank" 
-                                                            rel="noopener noreferrer" 
-                                                            className="text-[10px] text-indigo-600 hover:underline truncate block"
-                                                            title={source.title}
-                                                        >
-                                                            {source.title || source.uri}
-                                                        </a>
-                                                    </li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
-                                </div>
-                                <button onClick={() => handleSelectTrend(trend.title)} className="w-full flex items-center justify-center gap-2 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all">Usar este Tópico <ChevronRight size={14} /></button>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            )}
-          </div>
+            <div className="flex flex-col md:flex-row gap-4 max-w-2xl mx-auto">
+                <input 
+                    type="text" 
+                    value={topic} 
+                    onChange={e => setTopic(e.target.value)} 
+                    onKeyDown={e => e.key === 'Enter' && handleGenerate()}
+                    placeholder="Tópico ou Nicho..." 
+                    className="w-full p-5 border border-slate-200 rounded-2xl text-lg focus:ring-4 focus:ring-indigo-50 outline-none transition-all shadow-sm" 
+                />
+                <button 
+                    onClick={handleGenerate} 
+                    disabled={isGenerating || !topic.trim()} 
+                    className="bg-indigo-600 text-white px-8 rounded-2xl font-black text-xl hover:bg-indigo-700 transition-all shadow-xl disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                    {isGenerating ? <Loader2 className="animate-spin" size={24} /> : <Zap size={24} />} Gerar
+                </button>
+            </div>
+        </div>
       )}
 
       {generatedData && (
@@ -362,66 +186,12 @@ export const AdminEditor: React.FC = () => {
                   <div className="bg-white p-8 md:p-10 rounded-[2.5rem] border border-slate-200 shadow-sm space-y-8">
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-indigo-500 tracking-widest flex items-center gap-2"><Info size={12} /> Título do Conteúdo</label>
-                        <input type="text" value={generatedData.title} onChange={e => setGeneratedData({...generatedData, title: e.target.value})} placeholder="Um título chamativo..." className="w-full text-4xl font-black border-none focus:ring-0 text-slate-900 p-0" />
+                        <input type="text" value={generatedData.title} onChange={e => setGeneratedData({...generatedData, title: e.target.value})} placeholder="Um título chamativo..." className="w-full text-4xl font-black border-none focus:ring-0 text-slate-900 p-0 bg-transparent" />
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-2 flex items-center gap-2"><Info size={12} /> Editor Markdown</label>
-                        <SimpleMDE value={generatedData.content} onChange={onContentChange} options={mdeOptions} />
+                        <label className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-2 flex items-center gap-2"><PenTool size={12} /> Editor Markdown</label>
+                        <SimpleMDE value={generatedData.content} onChange={v => setGeneratedData({...generatedData, content: v})} options={mdeOptions} />
                       </div>
-                  </div>
-
-                  <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-sm overflow-hidden">
-                      <div className="bg-slate-50/50 p-8 border-b border-slate-100 flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="p-3 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100"><Search size={24} /></div>
-                            <div>
-                                <h3 className="text-xl font-black text-slate-900">Módulo SEO</h3>
-                                <p className="text-sm text-slate-500">Otimização orgânica ultra veloz.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button onClick={handleMagicSeo} disabled={isGeneratingSeo} className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-xl font-black hover:bg-indigo-700 shadow-xl shadow-indigo-100 disabled:opacity-50">
-                                {isGeneratingSeo ? <Loader2 className="animate-spin" size={20} /> : <Sparkles size={20} />} Otimizar
-                            </button>
-                        </div>
-                      </div>
-
-                      {showSeoDetails && (
-                        <div className="p-8 space-y-10 animate-in slide-in-from-top-4 duration-300">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-8">
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Settings2 size={12} /> SEO Meta Title</label>
-                                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${getQualityColor(generatedData.seo?.metaTitle?.length || 0, 40, 60, 65)}`}>
-                                                {generatedData.seo?.metaTitle?.length || 0}/60
-                                            </div>
-                                        </div>
-                                        <input type="text" value={generatedData.seo?.metaTitle || ''} onChange={e => updateSeo('metaTitle', e.target.value)} className="w-full rounded-2xl border-slate-200 text-sm py-4 px-4 shadow-sm focus:ring-4 focus:ring-indigo-50 outline-none" />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><LinkIcon size={12} /> Slug</label>
-                                        <input type="text" value={generatedData.seo?.slug || ''} onChange={e => updateSeo('slug', e.target.value.toLowerCase().replace(/\s+/g, '-'))} className="w-full rounded-2xl border-slate-200 text-sm py-4 px-4 shadow-sm font-mono focus:ring-4 focus:ring-indigo-50 outline-none" />
-                                    </div>
-                                </div>
-                                <div className="space-y-8">
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between items-center">
-                                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><AlignLeft size={12} /> Meta Description</label>
-                                            <div className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${getQualityColor(generatedData.seo?.metaDescription?.length || 0, 100, 155, 160)}`}>
-                                                {generatedData.seo?.metaDescription?.length || 0}/155
-                                            </div>
-                                        </div>
-                                        <textarea rows={3} value={generatedData.seo?.metaDescription || ''} onChange={e => updateSeo('metaDescription', e.target.value)} className="w-full rounded-2xl border-slate-200 text-sm py-4 px-4 shadow-sm resize-none focus:ring-4 focus:ring-indigo-50 outline-none" />
-                                    </div>
-                                    <div className="space-y-3">
-                                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest flex items-center gap-2"><Hash size={12} /> Palavras-chave</label>
-                                        <input type="text" value={generatedData.seo?.focusKeywords?.join(', ') || ''} onChange={e => updateSeo('focusKeywords', e.target.value.split(',').map(s => s.trim()))} className="w-full rounded-2xl border-slate-200 text-sm py-4 px-4 shadow-sm focus:ring-4 focus:ring-indigo-50 outline-none" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                      )}
                   </div>
               </div>
 
@@ -449,6 +219,16 @@ export const AdminEditor: React.FC = () => {
                                   {isGeneratingImage ? 'Gerando...' : 'Recriar Imagem'}
                               </button>
                           </div>
+                      </div>
+                      <div className="pt-2">
+                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1 mb-2 block">Link da Imagem</label>
+                          <input 
+                            type="text" 
+                            value={generatedData.coverImage || ''} 
+                            onChange={e => setGeneratedData({...generatedData, coverImage: e.target.value})} 
+                            placeholder="https://..." 
+                            className="w-full text-[10px] p-3 rounded-xl border border-slate-100 bg-slate-50 font-mono focus:ring-2 focus:ring-indigo-500 outline-none"
+                          />
                       </div>
                   </div>
               </div>

@@ -12,7 +12,9 @@ import {
   ChevronRight,
   ClipboardCheck,
   Database,
-  Settings
+  Settings,
+  ShieldCheck,
+  FileCode
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -39,41 +41,29 @@ export const LoginPage: React.FC = () => {
   const handleManualConfigSave = () => {
     try {
       let raw = manualInput.trim();
-      
-      // 1. Remove comentários e declarações de variáveis (const firebaseConfig = )
-      raw = raw.replace(/\/\/.*/g, ''); // Remove // comentários
-      raw = raw.replace(/\/\*[\s\S]*?\*\//g, ''); // Remove /* */ comentários
-      raw = raw.replace(/^(var|let|const)\s+\w+\s*=\s*/, '');
-      raw = raw.replace(/;$/, ''); // Remove ponto e vírgula no final
+      raw = raw.replace(/\/\/.*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      raw = raw.replace(/^(var|let|const)\s+\w+\s*=\s*/, '').replace(/;$/, '');
 
-      // 2. Extrai apenas o que está dentro do objeto principal { ... }
       const match = raw.match(/\{[\s\S]*\}/);
-      if (!match) {
-        throw new Error("Não foi possível encontrar um objeto { } no texto colado.");
-      }
+      if (!match) throw new Error("Não foi possível encontrar um objeto { } no texto colado.");
       raw = match[0];
 
-      // 3. Regex Robusta para converter Objeto JS em JSON
-      // Só coloca aspas em palavras que estão no início da linha ou após vírgula/chave, seguidas de :
-      // Isso evita quebrar o appId "1:144..." pois os : internos não estão no início da chave.
       const formattedJson = raw
-        .replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*):/g, '$1"$2"$3:') // Coloca aspas nas chaves
-        .replace(/'/g, '"') // Troca aspas simples por duplas
-        .replace(/,\s*}/g, '}'); // Remove vírgula trailing
+        .replace(/([{,]\s*)([a-zA-Z0-9_]+)(\s*):/g, '$1"$2"$3:')
+        .replace(/'/g, '"')
+        .replace(/,\s*}/g, '}');
 
       const config = JSON.parse(formattedJson);
       
       if (config.apiKey && config.projectId) {
         localStorage.setItem('firebase_manual_config', JSON.stringify(config));
         alert("Configuração salva! O app será reiniciado.");
-        // Força recarregamento limpo
-        window.location.href = window.location.origin + window.location.pathname + (window.location.hash || '');
+        window.location.href = window.location.origin + window.location.pathname;
       } else {
         alert("O código colado não parece ter 'apiKey' ou 'projectId'.");
       }
     } catch (e: any) {
-      console.error("Erro no Parse:", e);
-      alert("Erro ao ler os dados: " + e.message + "\n\nTente colar apenas o que está entre as chaves { ... }");
+      alert("Erro ao ler os dados: " + e.message);
     }
   };
 
@@ -113,34 +103,47 @@ export const LoginPage: React.FC = () => {
   if (!configStatus.isValid || forceSetup) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center p-6">
-        <div className="max-w-4xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
-          <div className="md:w-1/2 bg-indigo-600 p-10 text-white space-y-6">
+        <div className="max-w-5xl w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col md:flex-row">
+          <div className="md:w-2/5 bg-indigo-600 p-10 text-white space-y-8">
             <div className="p-3 bg-white/20 w-fit rounded-xl"><Database size={24} /></div>
-            <h2 className="text-3xl font-black">Conectar Firebase</h2>
-            <p className="text-indigo-100 text-sm">Cole as configurações do seu projeto para ativar o banco de dados real.</p>
-            <div className="space-y-3 pt-4">
+            <div>
+                <h2 className="text-3xl font-black">Conectar Firebase</h2>
+                <p className="text-indigo-100 text-sm mt-2 opacity-80">Ative seu banco de dados e armazenamento de imagens.</p>
+            </div>
+            
+            <div className="space-y-6 pt-4 border-t border-white/10">
+               <div className="space-y-3">
+                  <h4 className="text-[10px] font-black uppercase tracking-widest opacity-60 flex items-center gap-2">
+                    <ShieldCheck size={14} /> Dica de Segurança
+                  </h4>
+                  <p className="text-[11px] leading-relaxed text-indigo-100 bg-black/10 p-4 rounded-2xl border border-white/5">
+                    Para o sistema salvar <strong>posts</strong> e <strong>imagens</strong>, você DEVE ir no Firebase Console e mudar as abas <strong>Rules</strong> do Firestore e do Storage para: <br/><br/>
+                    <code className="bg-white/10 p-1 rounded font-mono text-white">allow read, write: if true;</code>
+                  </p>
+               </div>
+
                <div className="flex items-start gap-3 text-[10px] bg-black/10 p-3 rounded-lg uppercase font-bold tracking-wider">
                   <ChevronRight size={14} className="shrink-0" />
-                  <span>Firebase Console > Settings > Web App > firebaseConfig</span>
+                  <span>Configurações do Projeto > Web App > firebaseConfig</span>
                </div>
             </div>
             {forceSetup && (
                 <button onClick={() => setForceSetup(false)} className="mt-8 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100">Cancelar</button>
             )}
           </div>
-          <div className="md:w-1/2 p-10 flex flex-col justify-center space-y-6">
+          <div className="md:w-3/5 p-10 flex flex-col justify-center space-y-6">
             <div className="space-y-2">
                 <label className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Configuração (SDK Setup)</label>
                 <textarea 
-                value={manualInput}
-                onChange={(e) => setManualInput(e.target.value)}
-                placeholder={`const firebaseConfig = { \n  apiKey: "...", \n  projectId: "..." \n};`}
-                className="w-full h-48 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs font-mono focus:ring-2 focus:ring-indigo-50 outline-none resize-none"
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value)}
+                    placeholder={`const firebaseConfig = { \n  apiKey: "...", \n  projectId: "...", \n  storageBucket: "..." \n};`}
+                    className="w-full h-56 p-5 bg-slate-50 border border-slate-200 rounded-[2rem] text-xs font-mono focus:ring-4 focus:ring-indigo-500/10 outline-none resize-none shadow-inner"
                 />
             </div>
             <button 
               onClick={handleManualConfigSave}
-              className="w-full py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"
+              className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-indigo-600 transition-all flex items-center justify-center gap-2 shadow-xl active:scale-95"
             >
               <ClipboardCheck size={18} /> Salvar e Iniciar
             </button>
@@ -156,11 +159,11 @@ export const LoginPage: React.FC = () => {
         <div className="text-center space-y-2">
             <div className="mx-auto h-16 w-16 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600"><Sparkles size={32} /></div>
             <h2 className="text-2xl font-black text-slate-900">Portal Admin</h2>
-            <p className="text-sm text-slate-400">Gerencie seu ecossistema IA.</p>
+            <p className="text-sm text-slate-400 font-medium">Gerencie seu ecossistema IA.</p>
         </div>
 
         {error && (
-            <div className="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 text-xs font-bold flex items-center gap-2">
+            <div className="p-4 bg-red-50 text-red-700 rounded-2xl border border-red-100 text-xs font-bold flex items-center gap-2 animate-in shake duration-300">
                 <AlertTriangle size={16} /> {error.message}
             </div>
         )}
@@ -168,14 +171,14 @@ export const LoginPage: React.FC = () => {
         {step === AuthStep.EMAIL ? (
             <form onSubmit={handleEmailSubmit} className="space-y-4">
                 <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="E-mail" className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white outline-none transition-all shadow-inner" />
-                <button disabled={isLoading} className="w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2" style={{ backgroundColor: theme.primaryColor }}>
+                <button disabled={isLoading} className="w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg" style={{ backgroundColor: theme.primaryColor }}>
                     {isLoading ? <RefreshCw className="animate-spin" size={16}/> : 'Próximo'}
                 </button>
             </form>
         ) : (
             <form onSubmit={handleLogin} className="space-y-4">
                 <input type="password" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Senha" className="w-full p-4 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white outline-none transition-all shadow-inner" />
-                <button disabled={isLoading} className="w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2" style={{ backgroundColor: theme.primaryColor }}>
+                <button disabled={isLoading} className="w-full py-4 rounded-2xl text-white font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 shadow-lg" style={{ backgroundColor: theme.primaryColor }}>
                     {isLoading ? <RefreshCw className="animate-spin" size={16}/> : 'Entrar'}
                 </button>
             </form>
