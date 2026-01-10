@@ -10,14 +10,13 @@ const EmailNode = ({ id, data, isConnectable }: NodeProps) => {
 
   const onDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm("Deseja remover este passo de e-mail?")) {
+    if (window.confirm("Deseja remover este passo de e-mail? Todas as conexões vinculadas serão perdidas.")) {
       setNodes((nodes) => nodes.filter((node) => node.id !== id));
     }
   };
 
   return (
     <div className="relative group">
-      {/* Professional Blue Theme for Email */}
       <div className="w-[160px] h-[60px] bg-white border border-slate-200 border-l-[6px] border-l-blue-600 rounded-xl shadow-lg flex items-center px-4 overflow-hidden transition-all hover:shadow-xl hover:border-blue-200">
         <div className="mr-3 p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
           <Mail size={18} strokeWidth={2.5} />
@@ -26,7 +25,7 @@ const EmailNode = ({ id, data, isConnectable }: NodeProps) => {
             <span className="text-[10px] font-black text-blue-600 uppercase tracking-wider leading-tight select-none">
                 E-mail
             </span>
-            <span className="text-[11px] font-bold text-slate-700 truncate leading-tight select-none">
+            <span className="text-[11px] font-bold text-slate-700 truncate leading-tight select-none mt-0.5">
                 {data.subject || 'Configurar Assunto'}
             </span>
         </div>
@@ -42,7 +41,7 @@ const EmailNode = ({ id, data, isConnectable }: NodeProps) => {
       {/* Botão de Excluir */}
       <button 
         onClick={onDelete}
-        className="hidden group-hover:flex absolute -top-2 -left-2 bg-red-500 text-white p-1.5 rounded-full shadow-lg hover:bg-red-600 transition-colors z-10 animate-in zoom-in"
+        className="hidden group-hover:flex absolute -top-3 -left-3 bg-red-500 text-white p-2 rounded-full shadow-lg hover:bg-red-600 transition-colors z-20 animate-in zoom-in shadow-red-100"
         title="Remover Nó"
       >
         <Trash2 size={12} />
@@ -54,7 +53,7 @@ const EmailNode = ({ id, data, isConnectable }: NodeProps) => {
             e.stopPropagation();
             data.onEdit?.();
         }}
-        className="hidden group-hover:flex absolute -top-2 -right-2 bg-blue-600 text-white p-1.5 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-10 animate-in zoom-in"
+        className="hidden group-hover:flex absolute -top-3 -right-3 bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-20 animate-in zoom-in shadow-blue-100"
         title="Configurar E-mail"
       >
         <Edit2 size={12} />

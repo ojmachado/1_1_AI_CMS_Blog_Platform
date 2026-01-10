@@ -59,7 +59,6 @@ export const AdminDashboard: React.FC = () => {
   const fetchSuggestions = async () => {
     setLoadingSuggestions(true);
     try {
-      // Focando no nicho solicitado pelo usuário
       const results = await aiService.getTrendingTopics("Inteligência Artificial na educação");
       setSuggestions(results.slice(0, 5));
     } catch (error) {
@@ -102,8 +101,8 @@ export const AdminDashboard: React.FC = () => {
     if (searchTerm) {
       const lowerTerm = searchTerm.toLowerCase();
       result = result.filter(post => 
-        post.title.toLowerCase().includes(lowerTerm) || 
-        post.slug.toLowerCase().includes(lowerTerm)
+        String(post.title).toLowerCase().includes(lowerTerm) || 
+        String(post.slug).toLowerCase().includes(lowerTerm)
       );
     }
     result.sort((a, b) => {
@@ -163,7 +162,6 @@ export const AdminDashboard: React.FC = () => {
 
   return (
     <div className="space-y-10 pb-20">
-      {/* Search Grounding Suggestions Section */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -197,14 +195,14 @@ export const AdminDashboard: React.FC = () => {
                     <div key={idx} className="bg-white border border-slate-200 p-6 rounded-[2.2rem] shadow-sm hover:border-indigo-400 hover:shadow-xl hover:shadow-indigo-50 transition-all group flex flex-col justify-between">
                         <div className="space-y-3">
                             <span className="inline-flex items-center px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[9px] font-black uppercase tracking-tighter rounded-full border border-indigo-100">
-                                {topic.relevance || 'Alta Relevância'}
+                                {typeof topic.relevance === 'string' ? topic.relevance : 'Alta Relevância'}
                             </span>
                             <h3 className="text-sm font-black text-slate-900 leading-snug group-hover:text-indigo-600 transition-colors">
-                                {topic.title}
+                                {typeof topic.title === 'string' ? topic.title : 'Sem título'}
                             </h3>
                         </div>
                         <button 
-                            onClick={() => navigate('/admin/create', { state: { initialTopic: topic.title } })}
+                            onClick={() => navigate('/admin/create', { state: { initialTopic: String(topic.title) } })}
                             className="mt-6 w-full flex items-center justify-center gap-2 py-3 bg-slate-50 text-slate-500 hover:bg-indigo-600 hover:text-white rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
                         >
                             Escrever <ArrowRight size={14} />
@@ -219,7 +217,6 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </section>
 
-      {/* Quick Tools Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <Link to="/admin/create" className="flex flex-col items-center justify-center p-4 bg-indigo-600 text-white rounded-2xl shadow-lg shadow-indigo-100 hover:bg-indigo-700 transition-all group">
           <Plus size={24} className="mb-2 group-hover:scale-110 transition-transform" />
@@ -311,8 +308,8 @@ export const AdminDashboard: React.FC = () => {
                 {currentPosts.map((post) => (
                     <tr key={post.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-bold text-slate-900 max-w-xs truncate">{post.title}</div>
-                        <div className="text-[10px] text-slate-400 max-w-xs truncate font-mono">/{post.slug}</div>
+                        <div className="text-sm font-bold text-slate-900 max-w-xs truncate">{String(post.title)}</div>
+                        <div className="text-[10px] text-slate-400 max-w-xs truncate font-mono">/{String(post.slug)}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                         <button 

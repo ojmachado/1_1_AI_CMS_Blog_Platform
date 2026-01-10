@@ -1,8 +1,8 @@
 
-import { initializeApp, getApps, getApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
 
 const getSavedConfig = () => {
     try {
@@ -19,32 +19,57 @@ const getSavedConfig = () => {
     return null;
 };
 
-// Fallback para variáveis de ambiente se disponíveis
+// Fallback configuration
 const config = getSavedConfig() || {
     apiKey: "",
     projectId: "",
     storageBucket: ""
 };
 
-// Verifica se a configuração é minimamente utilizável
+// Check if configuration is minimally usable
 export const getFirebaseConfigStatus = () => {
     const hasMinConfig = !!(config && config.apiKey && config.apiKey.length > 10);
     return { isValid: hasMinConfig, config };
 };
 
-// Inicialização segura
-let firebaseApp: any = null;
-const { isValid } = getFirebaseConfigStatus();
+// Safe initialization logic
+const initializeFirebase = (): FirebaseApp | null => {
+    const { isValid } = getFirebaseConfigStatus();
+    if (!isValid) return null;
 
-if (isValid) {
     try {
-        firebaseApp = getApps().length === 0 ? initializeApp(config) : getApp();
+        // If already initialized, return existing app
+        if (getApps().length > 0) {
+            return getApp();
+        }
+        // Initialize new app
+        return initializeApp(config);
     } catch (error) {
         console.error("Firebase Init Error:", error);
+        return null;
     }
-}
+};
 
-// Exports seguros - garantem que o app não quebre se o Firebase não estiver configurado
-export const auth = firebaseApp ? getAuth(firebaseApp) : null as any;
-export const db = firebaseApp ? getFirestore(firebaseApp) : null as any;
-export const storage = firebaseApp ? getStorage(firebaseApp) : null as any;
+const firebaseApp = initializeFirebase();
+
+// Internal helper to get service or null
+const getService = <T>(serviceFn: (app: FirebaseApp) => T): T => {
+    if (!firebaseApp) return null as any;
+    try {
+        return serviceFn(firebaseApp);
+    } catch (e) {
+        console.error("Firebase Service Init Error:", e);
+        return null as any;
+    }
+};
+
+/**
+ * EXPORTS
+ * We maintain these as direct exports for compatibility, 
+ * but they are now safely computed from the internal firebaseApp instance.
+ */
+export const auth: Auth = getService(getAuth);
+export const db: Firestore = getService(getFirestore);
+export const storage: FirebaseStorage = getService(getStorage);
+
+export default firebaseApp;

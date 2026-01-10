@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useEffect, useState, useCallback, Suspense, lazy } from 'react';
 import { 
   Controls, 
   Background, 
@@ -26,8 +25,8 @@ import { ConditionPickerModal } from '../components/admin/funnels/ConditionPicke
 import { Plus, Save, ArrowLeft, MessageCircle, Zap, Loader2, Trash2, CheckCircle, Clock, Split, Mail } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 
-// Use dynamic import for the ReactFlow component to avoid SSR issues
-const ReactFlow = dynamic(() => import('reactflow'), { ssr: false });
+// Using standard React lazy instead of next/dynamic for better compatibility
+const ReactFlow = lazy(() => import('reactflow'));
 
 const nodeTypes = {
   EMAIL: EmailNode,
@@ -179,24 +178,26 @@ const FunnelCanvas = ({ funnel, onCancel, onSaveSuccess }: { funnel: Funnel, onC
             </div>
         </div>
         <div className="flex-1 w-full relative">
-            <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView>
-                <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
-                <Controls />
-                <Panel position="top-left" className="bg-white/95 backdrop-blur p-2 rounded-2xl shadow-xl border border-slate-200 flex flex-col gap-1 m-4">
-                    <button onClick={() => addNode('WHATSAPP')} className="p-3 hover:bg-green-50 text-green-600 rounded-xl flex items-center gap-3 transition-colors group">
-                        <MessageCircle size={18} /> <span className="text-xs font-bold uppercase">WhatsApp</span>
-                    </button>
-                    <button onClick={() => addNode('EMAIL')} className="p-3 hover:bg-blue-50 text-blue-600 rounded-xl flex items-center gap-3 transition-colors group">
-                        <Mail size={18} /> <span className="text-xs font-bold uppercase">Email</span>
-                    </button>
-                    <button onClick={() => addNode('DELAY')} className="p-3 hover:bg-amber-50 text-amber-600 rounded-xl flex items-center gap-3 transition-colors group">
-                        <Clock size={18} /> <span className="text-xs font-bold uppercase">Espera</span>
-                    </button>
-                    <button onClick={() => addNode('CONDITION')} className="p-3 hover:bg-purple-50 text-purple-600 rounded-xl flex items-center gap-3 transition-colors group">
-                        <Split size={18} /> <span className="text-xs font-bold uppercase">Se/Senão</span>
-                    </button>
-                </Panel>
-            </ReactFlow>
+            <Suspense fallback={<div className="h-full w-full bg-slate-50 flex items-center justify-center text-slate-400">Carregando Canvas...</div>}>
+              <ReactFlow nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} onConnect={onConnect} nodeTypes={nodeTypes} edgeTypes={edgeTypes} fitView>
+                  <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#cbd5e1" />
+                  <Controls />
+                  <Panel position="top-left" className="bg-white/95 backdrop-blur p-2 rounded-2xl shadow-xl border border-slate-200 flex flex-col gap-1 m-4">
+                      <button onClick={() => addNode('WHATSAPP')} className="p-3 hover:bg-green-50 text-green-600 rounded-xl flex items-center gap-3 transition-colors group">
+                          <MessageCircle size={18} /> <span className="text-xs font-bold uppercase">WhatsApp</span>
+                      </button>
+                      <button onClick={() => addNode('EMAIL')} className="p-3 hover:bg-blue-50 text-blue-600 rounded-xl flex items-center gap-3 transition-colors group">
+                          <Mail size={18} /> <span className="text-xs font-bold uppercase">Email</span>
+                      </button>
+                      <button onClick={() => addNode('DELAY')} className="p-3 hover:bg-amber-50 text-amber-600 rounded-xl flex items-center gap-3 transition-colors group">
+                          <Clock size={18} /> <span className="text-xs font-bold uppercase">Espera</span>
+                      </button>
+                      <button onClick={() => addNode('CONDITION')} className="p-3 hover:bg-purple-50 text-purple-600 rounded-xl flex items-center gap-3 transition-colors group">
+                          <Split size={18} /> <span className="text-xs font-bold uppercase">Se/Senão</span>
+                      </button>
+                  </Panel>
+              </ReactFlow>
+            </Suspense>
         </div>
         <EmailPickerModal isOpen={isEmailModalOpen} onClose={() => setIsEmailModalOpen(false)} onSave={(s, c) => setNodes((nds) => nds.map(n => n.id === activeNodeId ? { ...n, data: { ...n.data, subject: s, content: c } } : n))} initialSubject={nodes.find(n => n.id === activeNodeId)?.data?.subject} initialContent={nodes.find(n => n.id === activeNodeId)?.data?.content} />
         <MessagePickerModal isOpen={isWAModalOpen} onClose={() => setIsWAModalOpen(false)} onSelect={(id, title, time) => setNodes((nds) => nds.map(n => n.id === activeNodeId ? { ...n, data: { ...n.data, waTemplateId: id, waTemplateTitle: title, sendTime: time, label: title } } : n))} initialTemplateId={nodes.find(n => n.id === activeNodeId)?.data?.waTemplateId} initialSendTime={nodes.find(n => n.id === activeNodeId)?.data?.sendTime} />

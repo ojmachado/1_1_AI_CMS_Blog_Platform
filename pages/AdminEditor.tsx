@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+
+import React, { useState, useEffect, useMemo, Suspense, lazy } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import dynamic from 'next/dynamic';
 import { aiService } from '../services/aiService';
 import { dbService } from '../services/dbService';
 import { PostStatus, BlogPost } from '../types';
@@ -17,11 +17,8 @@ import {
   PenTool
 } from 'lucide-react';
 
-// Dynamic import for SimpleMDE to prevent SSR errors
-const SimpleMDE = dynamic(() => import("react-simplemde-editor"), { 
-  ssr: false,
-  loading: () => <div className="h-[450px] w-full bg-slate-50 animate-pulse rounded-xl border border-slate-200 flex items-center justify-center text-slate-400">Carregando Editor...</div>
-});
+// Using standard React lazy instead of next/dynamic for better compatibility
+const SimpleMDE = lazy(() => import("react-simplemde-editor"));
 
 export const AdminEditor: React.FC = () => {
   const navigate = useNavigate();
@@ -171,7 +168,9 @@ export const AdminEditor: React.FC = () => {
                       </div>
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-indigo-500 tracking-widest mb-2 flex items-center gap-2"><PenTool size={12} /> Editor Markdown</label>
-                        <SimpleMDE value={generatedData.content} onChange={v => setGeneratedData({...generatedData, content: v})} options={mdeOptions} />
+                        <Suspense fallback={<div className="h-[450px] w-full bg-slate-50 animate-pulse rounded-xl border border-slate-200 flex items-center justify-center text-slate-400">Carregando Editor...</div>}>
+                          <SimpleMDE value={generatedData.content} onChange={v => setGeneratedData({...generatedData, content: v})} options={mdeOptions} />
+                        </Suspense>
                       </div>
                   </div>
               </div>

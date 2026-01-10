@@ -1,13 +1,9 @@
-import React, { useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+import React, { useRef, useState, Suspense, lazy } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Save, ArrowLeft, Layout, Loader2, CheckCircle2 } from 'lucide-react';
 
-// Dynamic import for EmailEditor to prevent SSR errors
-const EmailEditor = dynamic(() => import('react-email-editor'), { 
-  ssr: false,
-  loading: () => <div className="h-[calc(100vh-84px)] w-full bg-slate-100 animate-pulse flex items-center justify-center text-slate-400">Carregando Editor Visual...</div>
-});
+// Using standard React lazy instead of next/dynamic for better compatibility
+const EmailEditor = lazy(() => import('react-email-editor'));
 
 export const AdminEmailEditor: React.FC = () => {
   const emailEditorRef = useRef<any>(null);
@@ -91,11 +87,13 @@ export const AdminEmailEditor: React.FC = () => {
       </div>
 
       <div className="flex-1 w-full bg-slate-100">
-        <EmailEditor 
-            ref={emailEditorRef} 
-            onReady={onReady} 
-            minHeight="calc(100vh - 84px)"
-        />
+        <Suspense fallback={<div className="h-[calc(100vh-84px)] w-full bg-slate-100 animate-pulse flex items-center justify-center text-slate-400">Carregando Editor Visual...</div>}>
+          <EmailEditor 
+              ref={emailEditorRef} 
+              onReady={onReady} 
+              minHeight="calc(100vh - 84px)"
+          />
+        </Suspense>
       </div>
     </div>
   );

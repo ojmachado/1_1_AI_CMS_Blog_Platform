@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -38,7 +39,7 @@ export const PostPage: React.FC = () => {
   const [scrollProgress, setScrollProgress] = useState(0);
   const { theme } = useTheme();
 
-  // Robust helper to extract text from React nodes (solves error #31)
+  // Helper para extrair texto de nós do React de forma segura
   const flattenText = (node: any): string => {
     if (typeof node === 'string') return node;
     if (typeof node === 'number') return String(node);
